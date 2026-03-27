@@ -174,211 +174,123 @@ const calculateMatchScore = (
 };
 
 // Global Destination System Seed Data (Part 3)
-const mockCountries: Country[] = [
-  { code: 'MY', name: 'Malaysia', flag: '🇲🇾', cities: ['kl-city', 'penang'] },
-  { code: 'TH', name: 'Thailand', flag: '🇹🇭', cities: ['bangkok-city', 'phuket'] },
-  { code: 'ID', name: 'Indonesia', flag: '🇮🇩', cities: ['bali-city'] },
-  { code: 'JP', name: 'Japan', flag: '🇯🇵', cities: ['tokyo-city'] },
-  { code: 'FR', name: 'France', flag: '🇫🇷', cities: ['paris-city'] },
-  { code: 'IT', name: 'Italy', flag: '🇮🇹', cities: ['rome-city', 'florence'] },
-  { code: 'ES', name: 'Spain', flag: '🇪🇸', cities: ['barcelona-city'] },
-  { code: 'AE', name: 'UAE', flag: '🇦🇪', cities: ['dubai-city'] },
-  { code: 'TR', name: 'Turkey', flag: '🇹🇷', cities: ['istanbul-city'] },
-  { code: 'US', name: 'USA', flag: '🇺🇸', cities: ['new-york-city', 'los-angeles'] },
-  { code: 'MX', name: 'Mexico', flag: '🇲🇽', cities: ['cancun-city'] },
-];
+const countryCitySeeds = [
+  { code: 'MY', name: 'Malaysia', flag: '🇲🇾', cities: ['Kuala Lumpur', 'Penang', 'Langkawi', 'Johor Bahru', 'Malacca', 'Ipoh', 'Kuching', 'Kota Kinabalu', 'Cameron Highlands', 'Putrajaya'] },
+  { code: 'TH', name: 'Thailand', flag: '🇹🇭', cities: ['Bangkok', 'Phuket', 'Chiang Mai', 'Pattaya', 'Krabi', 'Ayutthaya', 'Koh Samui', 'Hua Hin', 'Chiang Rai', 'Kanchanaburi'] },
+  { code: 'ID', name: 'Indonesia', flag: '🇮🇩', cities: ['Bali', 'Jakarta', 'Yogyakarta', 'Bandung', 'Lombok', 'Surabaya', 'Medan', 'Labuan Bajo', 'Seminyak', 'Ubud'] },
+  { code: 'JP', name: 'Japan', flag: '🇯🇵', cities: ['Tokyo', 'Osaka', 'Kyoto', 'Sapporo', 'Nara', 'Hiroshima', 'Fukuoka', 'Nagoya', 'Hakone', 'Yokohama'] },
+  { code: 'FR', name: 'France', flag: '🇫🇷', cities: ['Paris', 'Nice', 'Lyon', 'Marseille', 'Bordeaux', 'Toulouse', 'Strasbourg', 'Cannes', 'Annecy', 'Lille'] },
+  { code: 'IT', name: 'Italy', flag: '🇮🇹', cities: ['Rome', 'Florence', 'Venice', 'Milan', 'Naples', 'Turin', 'Bologna', 'Verona', 'Palermo', 'Pisa'] },
+  { code: 'ES', name: 'Spain', flag: '🇪🇸', cities: ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'Malaga', 'Bilbao', 'Ibiza', 'Toledo', 'Cordoba'] },
+  { code: 'AE', name: 'UAE', flag: '🇦🇪', cities: ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Fujairah', 'Ras Al Khaimah', 'Umm Al Quwain', 'Khor Fakkan', 'Jebel Ali'] },
+  { code: 'TR', name: 'Turkey', flag: '🇹🇷', cities: ['Istanbul', 'Ankara', 'Izmir', 'Antalya', 'Bursa', 'Cappadocia', 'Fethiye', 'Bodrum', 'Konya', 'Trabzon'] },
+  { code: 'US', name: 'USA', flag: '🇺🇸', cities: ['New York', 'Los Angeles', 'San Francisco', 'Miami', 'Chicago', 'Las Vegas', 'Seattle', 'Boston', 'Orlando', 'San Diego'] },
+  { code: 'MX', name: 'Mexico', flag: '🇲🇽', cities: ['Cancun', 'Mexico City', 'Guadalajara', 'Monterrey', 'Tulum', 'Playa del Carmen', 'Merida', 'Puerto Vallarta', 'Oaxaca', 'Los Cabos'] },
+] as const;
 
-const mockCities: City[] = [
-  {
-    id: 'kl-city',
-    name: 'Kuala Lumpur',
-    country: 'Malaysia',
-    countryCode: 'MY',
-    latitude: 3.139,
-    longitude: 101.6869,
-    description: 'Modern capital city with cultural landmarks and food scene',
-    activities: ['act12', 'act13', 'act14'],
-    packages: [],
-    highlights: ['Petronas Twin Towers', 'Batu Caves', 'KL Food Scene'],
-  },
-  {
-    id: 'penang',
-    name: 'Penang',
-    country: 'Malaysia',
-    countryCode: 'MY',
-    latitude: 5.4164,
-    longitude: 100.3327,
-    description: 'Historic island known for street food and cultural heritage',
-    activities: [],
-    packages: [],
-    highlights: ['Georgetown Heritage', 'Street Food', 'Nature Reserve'],
-  },
-  {
-    id: 'bangkok-city',
-    name: 'Bangkok',
-    country: 'Thailand',
-    countryCode: 'TH',
-    latitude: 13.7563,
-    longitude: 100.5018,
-    description: 'Vibrant capital with temples, markets, and nightlife',
-    activities: ['act6', 'act15', 'act16'],
-    packages: [],
-    highlights: ['Grand Palace', 'Floating Markets', 'River Cruises'],
-  },
-  {
-    id: 'phuket',
-    name: 'Phuket',
-    country: 'Thailand',
-    countryCode: 'TH',
-    latitude: 7.9519,
-    longitude: 98.3381,
-    description: 'Beach paradise with island hopping and water activities',
-    activities: [],
-    packages: [],
-    highlights: ['Phi Phi Islands', 'Beach Clubs', 'Water Sports'],
-  },
-  {
-    id: 'bali-city',
-    name: 'Bali',
-    country: 'Indonesia',
-    countryCode: 'ID',
-    latitude: -8.3405,
-    longitude: 115.092,
-    description: 'Tropical paradise with beaches, temples, and activities',
-    activities: ['act1', 'act7', 'act17'],
-    packages: [],
-    highlights: ['Scuba Diving', 'Rice Terraces', 'Cultural Tours'],
-  },
-  {
-    id: 'tokyo-city',
-    name: 'Tokyo',
-    country: 'Japan',
-    countryCode: 'JP',
-    latitude: 35.6762,
-    longitude: 139.6503,
-    description: 'Ultra-modern metropolis with ancient temples and technology',
-    activities: ['act11', 'act18', 'act19'],
-    packages: [],
-    highlights: ['Shibuya Crossing', 'Temple Tours', 'Food Culture'],
-  },
-  {
-    id: 'paris-city',
-    name: 'Paris',
-    country: 'France',
-    countryCode: 'FR',
-    latitude: 48.8566,
-    longitude: 2.3522,
-    description: 'City of light and love with iconic landmarks and culture',
-    activities: ['act4', 'act20', 'act21'],
-    packages: [],
-    highlights: ['Eiffel Tower', 'Museums', 'Cafes'],
-  },
-  {
-    id: 'rome-city',
-    name: 'Rome',
-    country: 'Italy',
-    countryCode: 'IT',
-    latitude: 41.9028,
-    longitude: 12.4964,
-    description: 'Eternal city rich with history, art, and cuisine',
-    activities: ['act5', 'act22', 'act23'],
-    packages: [],
-    highlights: ['Colosseum', 'Vatican', 'Food Tours'],
-  },
-  {
-    id: 'barcelona-city',
-    name: 'Barcelona',
-    country: 'Spain',
-    countryCode: 'ES',
-    latitude: 41.3874,
-    longitude: 2.1686,
-    description: 'Mediterranean city with art, architecture, and beaches',
-    activities: ['act24', 'act25'],
-    packages: [],
-    highlights: ['Sagrada Familia', 'Beaches', 'Modernist Architecture'],
-  },
-  {
-    id: 'dubai-city',
-    name: 'Dubai',
-    country: 'UAE',
-    countryCode: 'AE',
-    latitude: 25.2048,
-    longitude: 55.2708,
-    description: 'Luxury desert city with iconic infrastructure and shopping',
-    activities: ['act26', 'act27'],
-    packages: [],
-    highlights: ['Burj Khalifa', 'Desert Safari', 'Luxury Shopping'],
-  },
-  {
-    id: 'istanbul-city',
-    name: 'Istanbul',
-    country: 'Turkey',
-    countryCode: 'TR',
-    latitude: 41.0082,
-    longitude: 28.9784,
-    description: 'Transcontinental city bridging Europe and Asia',
-    activities: ['act28', 'act29'],
-    packages: [],
-    highlights: ['Blue Mosque', 'Bazaar', 'Bosphorus'],
-  },
-  {
-    id: 'new-york-city',
-    name: 'New York',
-    country: 'USA',
-    countryCode: 'US',
-    latitude: 40.7128,
-    longitude: -74.006,
-    description: 'The city that never sleeps with world-class attractions',
-    activities: ['act30'],
-    packages: [],
-    highlights: ['Times Square', 'Central Park', 'Broadway'],
-  },
-  {
-    id: 'los-angeles',
-    name: 'Los Angeles',
-    country: 'USA',
-    countryCode: 'US',
-    latitude: 34.0522,
-    longitude: -118.2437,
-    description: 'City of entertainment with beaches and stars',
-    activities: ['act31'],
-    packages: [],
-    highlights: ['Hollywood', 'Beaches', 'Coastal Drives'],
-  },
-  {
-    id: 'cancun-city',
-    name: 'Cancun',
-    country: 'Mexico',
-    countryCode: 'MX',
-    latitude: 21.1619,
-    longitude: -86.8515,
-    description: 'Caribbean paradise with beaches and cenotes',
-    activities: ['act2', 'act32', 'act33'],
-    packages: [],
-    highlights: ['Beach Clubs', 'Water Sports', 'Mayan Ruins'],
-  },
-];
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const buildCityId = (countryCode: string, cityName: string) => `${countryCode.toLowerCase()}-${slugify(cityName)}`;
+
+const mockCountries: Country[] = countryCitySeeds.map((country) => ({
+  code: country.code,
+  name: country.name,
+  flag: country.flag,
+  cities: country.cities.map((cityName) => buildCityId(country.code, cityName)),
+}));
+
+const cityHighlightsByCountry: Record<string, string[]> = {
+  MY: ['Street food', 'Iconic skyline', 'Cultural districts'],
+  TH: ['Night markets', 'Temples', 'Island hopping'],
+  ID: ['Volcanic landscapes', 'Beach escapes', 'Temple heritage'],
+  JP: ['Tradition meets modernity', 'Seasonal festivals', 'Food tours'],
+  FR: ['Historic architecture', 'Cafe culture', 'Art museums'],
+  IT: ['Ancient ruins', 'Regional cuisine', 'Renaissance landmarks'],
+  ES: ['Gaudi architecture', 'Tapas routes', 'Sunset plazas'],
+  AE: ['Luxury experiences', 'Desert adventures', 'Waterfront districts'],
+  TR: ['Grand bazaars', 'Ottoman history', 'Coastal getaways'],
+  US: ['City icons', 'National culture', 'Entertainment hubs'],
+  MX: ['Mayan heritage', 'Beach resorts', 'Colorful old towns'],
+};
+
+const countryBasePoints: Record<string, { lat: number; lng: number }> = {
+  MY: { lat: 3.139, lng: 101.6869 },
+  TH: { lat: 13.7563, lng: 100.5018 },
+  ID: { lat: -8.3405, lng: 115.092 },
+  JP: { lat: 35.6762, lng: 139.6503 },
+  FR: { lat: 48.8566, lng: 2.3522 },
+  IT: { lat: 41.9028, lng: 12.4964 },
+  ES: { lat: 41.3874, lng: 2.1686 },
+  AE: { lat: 25.2048, lng: 55.2708 },
+  TR: { lat: 41.0082, lng: 28.9784 },
+  US: { lat: 40.7128, lng: -74.006 },
+  MX: { lat: 21.1619, lng: -86.8515 },
+};
+
+const mockCities: City[] = countryCitySeeds.flatMap((country, countryIdx) =>
+  country.cities.map((cityName, cityIdx) => {
+    const basePoint = countryBasePoints[country.code] || countryBasePoints.MY;
+    const ring = cityIdx - 4;
+    const point = {
+      lat: Number((basePoint.lat + ring * 0.07 + countryIdx * 0.01).toFixed(4)),
+      lng: Number((basePoint.lng + ring * 0.07 + countryIdx * 0.01).toFixed(4)),
+    };
+
+    return {
+      id: buildCityId(country.code, cityName),
+      name: cityName,
+      country: country.name,
+      countryCode: country.code,
+      latitude: point.lat,
+      longitude: point.lng,
+      description: `${cityName} in ${country.name} with curated experiences from local suppliers.`,
+      activities: Array.from({ length: 10 }, (_, idx) => `act-${buildCityId(country.code, cityName)}-${idx + 1}`),
+      packages: [],
+      highlights: cityHighlightsByCountry[country.code],
+    };
+  })
+);
 
 const GLOBAL_CITIES = [
   { city: 'Kuala Lumpur', country: 'Malaysia', lat: 3.139, lng: 101.6869 },
+  { city: 'Penang', country: 'Malaysia', lat: 5.4164, lng: 100.3327 },
   { city: 'Bangkok', country: 'Thailand', lat: 13.7563, lng: 100.5018 },
+  { city: 'Phuket', country: 'Thailand', lat: 7.9519, lng: 98.3381 },
   { city: 'Bali', country: 'Indonesia', lat: -8.3405, lng: 115.092 },
+  { city: 'Jakarta', country: 'Indonesia', lat: -6.2088, lng: 106.8456 },
   { city: 'Tokyo', country: 'Japan', lat: 35.6762, lng: 139.6503 },
+  { city: 'Osaka', country: 'Japan', lat: 34.6937, lng: 135.5023 },
   { city: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522 },
+  { city: 'Nice', country: 'France', lat: 43.7102, lng: 7.262 },
   { city: 'Rome', country: 'Italy', lat: 41.9028, lng: 12.4964 },
+  { city: 'Florence', country: 'Italy', lat: 43.7696, lng: 11.2558 },
   { city: 'Barcelona', country: 'Spain', lat: 41.3874, lng: 2.1686 },
+  { city: 'Madrid', country: 'Spain', lat: 40.4168, lng: -3.7038 },
   { city: 'Dubai', country: 'UAE', lat: 25.2048, lng: 55.2708 },
+  { city: 'Abu Dhabi', country: 'UAE', lat: 24.4539, lng: 54.3773 },
   { city: 'Istanbul', country: 'Turkey', lat: 41.0082, lng: 28.9784 },
+  { city: 'Ankara', country: 'Turkey', lat: 39.9334, lng: 32.8597 },
   { city: 'New York', country: 'USA', lat: 40.7128, lng: -74.006 },
   { city: 'Los Angeles', country: 'USA', lat: 34.0522, lng: -118.2437 },
+  { city: 'San Francisco', country: 'USA', lat: 37.7749, lng: -122.4194 },
   { city: 'Cancun', country: 'Mexico', lat: 21.1619, lng: -86.8515 },
+  { city: 'Mexico City', country: 'Mexico', lat: 19.4326, lng: -99.1332 },
 ];
 
-const getCityPoint = (city: string, offset = 0) => {
-  const base = GLOBAL_CITIES.find((entry) => entry.city === city) || GLOBAL_CITIES[0];
+const getCityPoint = (city: string, offset = 0, countryCode?: string) => {
+  const cityMatch = GLOBAL_CITIES.find((entry) => entry.city === city);
+  const countryMatch = countryCode ? countryBasePoints[countryCode] : undefined;
+  const base = cityMatch || countryMatch || GLOBAL_CITIES[0];
+  const ring = (offset % 10) - 5;
+
   return {
-    lat: Number((base.lat + offset * 0.01).toFixed(4)),
-    lng: Number((base.lng + offset * 0.01).toFixed(4)),
+    lat: Number((base.lat + ring * 0.07).toFixed(4)),
+    lng: Number((base.lng + ring * 0.07).toFixed(4)),
   };
 };
 
@@ -1912,74 +1824,133 @@ const mockChatMessages: ChatMessage[] = [
   },
 ];
 
-const mockActivities: Activity[] = [
-  ...[
-    { id: 'act1', title: 'Scuba Diving', city: 'Bali', country: 'Indonesia', category: 'water_sports', price: 120, duration: 300, difficulty: 'moderate', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 6 },
-    { id: 'act2', title: 'Snorkeling', city: 'Cancun', country: 'Mexico', category: 'water_sports', price: 80, duration: 180, difficulty: 'easy', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 12 },
-    { id: 'act3', title: 'Jet Ski', city: 'Dubai', country: 'UAE', category: 'water_sports', price: 150, duration: 60, difficulty: 'moderate', requiredServices: ['activity_provider'], groupSizeMin: 1, groupSizeMax: 2 },
-    { id: 'act4', title: 'Louvre Museum Tour', city: 'Paris', country: 'France', category: 'cultural', price: 60, duration: 180, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 10 },
-    { id: 'act5', title: 'Colosseum Tour', city: 'Rome', country: 'Italy', category: 'cultural', price: 55, duration: 120, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 10 },
-    { id: 'act6', title: 'Grand Palace Visit', city: 'Bangkok', country: 'Thailand', category: 'cultural', price: 40, duration: 120, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 12 },
-    { id: 'act7', title: 'Mount Batur Hiking', city: 'Bali', country: 'Indonesia', category: 'adventure', price: 70, duration: 360, difficulty: 'challenging', requiredServices: ['guide', 'activity_provider'], groupSizeMin: 2, groupSizeMax: 8 },
-    { id: 'act8', title: 'Desert Safari', city: 'Dubai', country: 'UAE', category: 'adventure', price: 100, duration: 300, difficulty: 'moderate', requiredServices: ['driver', 'activity_provider'], groupSizeMin: 2, groupSizeMax: 15 },
-    { id: 'act9', title: 'ATV Ride', city: 'Cancun', country: 'Mexico', category: 'adventure', price: 90, duration: 180, difficulty: 'moderate', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 10 },
-    { id: 'act10', title: 'NYC City Tour', city: 'New York', country: 'USA', category: 'sightseeing', price: 50, duration: 240, difficulty: 'easy', requiredServices: ['guide', 'driver'], groupSizeMin: 1, groupSizeMax: 14 },
-    { id: 'act11', title: 'Tokyo Night Walk', city: 'Tokyo', country: 'Japan', category: 'sightseeing', price: 45, duration: 180, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 10 },
-    { id: 'act12', title: 'Petronas Twin Towers Visit', city: 'Kuala Lumpur', country: 'Malaysia', category: 'sightseeing', price: 35, duration: 120, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 10 },
-    { id: 'act13', title: 'Batu Caves Cultural Stop', city: 'Kuala Lumpur', country: 'Malaysia', category: 'cultural', price: 30, duration: 120, difficulty: 'easy', requiredServices: ['guide', 'driver'], groupSizeMin: 1, groupSizeMax: 12 },
-    { id: 'act14', title: 'KL Food Street Crawl', city: 'Kuala Lumpur', country: 'Malaysia', category: 'food', price: 55, duration: 180, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 8 },
-    { id: 'act15', title: 'Bangkok River Dinner Cruise', city: 'Bangkok', country: 'Thailand', category: 'food', price: 75, duration: 150, difficulty: 'easy', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 20 },
-    { id: 'act16', title: 'Ayutthaya Heritage Day Trip', city: 'Bangkok', country: 'Thailand', category: 'cultural', price: 95, duration: 420, difficulty: 'moderate', requiredServices: ['guide', 'driver'], groupSizeMin: 2, groupSizeMax: 10 },
-    { id: 'act17', title: 'Ubud Rice Terrace Cycling', city: 'Bali', country: 'Indonesia', category: 'nature', price: 85, duration: 240, difficulty: 'moderate', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 12 },
-    { id: 'act18', title: 'Tokyo Sushi Masterclass', city: 'Tokyo', country: 'Japan', category: 'food', price: 130, duration: 180, difficulty: 'moderate', requiredServices: ['activity_provider', 'translator'], groupSizeMin: 1, groupSizeMax: 6 },
-    { id: 'act19', title: 'Meiji Shrine Cultural Walk', city: 'Tokyo', country: 'Japan', category: 'cultural', price: 42, duration: 120, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 12 },
-    { id: 'act20', title: 'Seine Sunset Cruise', city: 'Paris', country: 'France', category: 'sightseeing', price: 65, duration: 120, difficulty: 'easy', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 30 },
-    { id: 'act21', title: 'Montmartre Art Walk', city: 'Paris', country: 'France', category: 'cultural', price: 48, duration: 150, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 10 },
-    { id: 'act22', title: 'Vatican Museums Fast Track', city: 'Rome', country: 'Italy', category: 'cultural', price: 90, duration: 210, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 8 },
-    { id: 'act23', title: 'Roman Food Tasting Route', city: 'Rome', country: 'Italy', category: 'food', price: 70, duration: 180, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 2, groupSizeMax: 10 },
-    { id: 'act24', title: 'Sagrada Familia + Gothic Quarter', city: 'Barcelona', country: 'Spain', category: 'cultural', price: 68, duration: 210, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 1, groupSizeMax: 10 },
-    { id: 'act25', title: 'Barcelona Beach E-Bike Ride', city: 'Barcelona', country: 'Spain', category: 'adventure', price: 58, duration: 150, difficulty: 'moderate', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 10 },
-    { id: 'act26', title: 'Burj Khalifa Premium Visit', city: 'Dubai', country: 'UAE', category: 'sightseeing', price: 110, duration: 120, difficulty: 'easy', requiredServices: ['guide', 'driver'], groupSizeMin: 1, groupSizeMax: 8 },
-    { id: 'act27', title: 'Dubai Mall Luxury Shopping Assist', city: 'Dubai', country: 'UAE', category: 'shopping', price: 140, duration: 240, difficulty: 'easy', requiredServices: ['translator', 'driver'], groupSizeMin: 1, groupSizeMax: 4 },
-    { id: 'act28', title: 'Bosphorus Cruise + Old City Walk', city: 'Istanbul', country: 'Turkey', category: 'sightseeing', price: 72, duration: 240, difficulty: 'easy', requiredServices: ['guide'], groupSizeMin: 2, groupSizeMax: 15 },
-    { id: 'act29', title: 'Grand Bazaar Negotiation Tour', city: 'Istanbul', country: 'Turkey', category: 'shopping', price: 38, duration: 150, difficulty: 'easy', requiredServices: ['translator', 'guide'], groupSizeMin: 1, groupSizeMax: 8 },
-    { id: 'act30', title: 'LA Coastal Highlights Tour', city: 'Los Angeles', country: 'USA', category: 'sightseeing', price: 58, duration: 240, difficulty: 'easy', requiredServices: ['driver', 'guide'], groupSizeMin: 1, groupSizeMax: 12 },
-    { id: 'act31', title: 'Hollywood Studio Backlot Day', city: 'Los Angeles', country: 'USA', category: 'adventure', price: 125, duration: 300, difficulty: 'moderate', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 10 },
-    { id: 'act32', title: 'Cancun Island Hopping', city: 'Cancun', country: 'Mexico', category: 'water_sports', price: 115, duration: 300, difficulty: 'moderate', requiredServices: ['activity_provider'], groupSizeMin: 2, groupSizeMax: 14 },
-    { id: 'act33', title: 'Cancun Family Theme Park Day', city: 'Cancun', country: 'Mexico', category: 'family', price: 98, duration: 360, difficulty: 'easy', requiredServices: ['activity_provider', 'driver'], groupSizeMin: 3, groupSizeMax: 16 },
-  ].map((seed, idx) => {
-    const cityMeta = GLOBAL_CITIES.find((entry) => entry.city === seed.city) || GLOBAL_CITIES[0];
+const activityBlueprints: Array<{
+  title: string;
+  category: Activity['category'];
+  duration: number;
+  price: number;
+  difficulty: 'easy' | 'moderate' | 'challenging';
+  requiredServices: ServiceType[];
+}> = [
+  { title: 'City Highlights Walk', category: 'sightseeing', duration: 150, price: 55, difficulty: 'easy', requiredServices: ['guide'] },
+  { title: 'Local Street Food Route', category: 'food', duration: 180, price: 68, difficulty: 'easy', requiredServices: ['guide'] },
+  { title: 'Heritage Landmark Tour', category: 'cultural', duration: 210, price: 78, difficulty: 'easy', requiredServices: ['guide'] },
+  { title: 'Nature Escape Trail', category: 'nature', duration: 240, price: 84, difficulty: 'moderate', requiredServices: ['guide', 'activity_provider'] },
+  { title: 'Adventure Challenge Session', category: 'adventure', duration: 210, price: 98, difficulty: 'challenging', requiredServices: ['activity_provider'] },
+  { title: 'Waterfront Experience', category: 'water_sports', duration: 180, price: 102, difficulty: 'moderate', requiredServices: ['activity_provider'] },
+  { title: 'Night Lights Discovery', category: 'nightlife', duration: 150, price: 72, difficulty: 'easy', requiredServices: ['guide', 'driver'] },
+  { title: 'Wellness Reset Experience', category: 'wellness', duration: 120, price: 88, difficulty: 'easy', requiredServices: ['activity_provider'] },
+  { title: 'Shopping District Insider Tour', category: 'shopping', duration: 180, price: 76, difficulty: 'easy', requiredServices: ['guide', 'driver'] },
+  { title: 'Premium Signature Journey', category: 'sightseeing', duration: 300, price: 130, difficulty: 'moderate', requiredServices: ['driver', 'guide'] },
+];
+
+const supplierPackageUsers = mockUsers.filter((user) =>
+  ['driver', 'guide', 'activity_operator'].includes(user.role)
+);
+
+const pickSupplierForCity = (cityName: string, index: number) => {
+  const localSuppliers = supplierPackageUsers.filter((supplier) => supplier.operatingLocation === cityName);
+  if (localSuppliers.length > 0) {
+    return localSuppliers[index % localSuppliers.length];
+  }
+
+  return supplierPackageUsers[index % supplierPackageUsers.length];
+};
+
+const mockActivities: Activity[] = mockCities.flatMap((city, cityIndex) =>
+  city.activities.map((activityId, activityIndex) => {
+    const blueprint = activityBlueprints[activityIndex % activityBlueprints.length];
+    const point = getCityPoint(city.name, cityIndex * 10 + activityIndex, city.countryCode);
+    const title = `${city.name} ${blueprint.title}`;
 
     return {
-      id: seed.id,
-      name: seed.title,
-      title: seed.title,
-      city: seed.city,
-      country: seed.country,
-      category: seed.category,
-      description: `${seed.title} in ${seed.city}, ${seed.country}.`,
-      images: [`https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&sig=${idx + 1}`],
-      duration: seed.duration,
-      estimatedPrice: seed.price,
-      price: seed.price,
-      difficulty: seed.difficulty,
-      servicesNeeded: seed.requiredServices,
-      requiredServices: seed.requiredServices,
-      groupSizeMin: seed.groupSizeMin,
-      groupSizeMax: seed.groupSizeMax,
-      maxGroupSize: seed.groupSizeMax,
-      highlights: ['Top-rated experience', 'Local expert support', 'Flexible booking'],
-      location: {
-        lat: Number((cityMeta.lat + idx * 0.004).toFixed(4)),
-        lng: Number((cityMeta.lng + idx * 0.004).toFixed(4)),
+      id: activityId,
+      name: title,
+      title,
+      city: city.name,
+      country: city.country,
+      category: blueprint.category,
+      description: `${title} hosted with verified local suppliers in ${city.name}, ${city.country}.`,
+      images: [`https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&sig=${cityIndex * 20 + activityIndex + 1}`],
+      duration: blueprint.duration,
+      estimatedPrice: blueprint.price + cityIndex,
+      price: blueprint.price + cityIndex,
+      difficulty: blueprint.difficulty,
+      servicesNeeded: blueprint.requiredServices,
+      requiredServices: blueprint.requiredServices,
+      groupSizeMin: activityIndex % 2 === 0 ? 1 : 2,
+      groupSizeMax: 8 + (activityIndex % 6),
+      maxGroupSize: 8 + (activityIndex % 6),
+      highlights: ['Verified local supplier', 'Traveler favorite', 'Flexible schedule'],
+      location: point,
+      rating: Number((4.6 + ((activityIndex + cityIndex) % 4) * 0.1).toFixed(1)),
+      reviewCount: 60 + cityIndex * 7 + activityIndex * 3,
+      popularityScore: 75 + ((cityIndex + activityIndex) % 20),
+      tags: [slugify(city.name), blueprint.category, 'supplier-posted'],
+    };
+  })
+);
+
+const mockPackages: Package[] = mockCities.map((city, cityIndex) => {
+  const supplier = pickSupplierForCity(city.name, cityIndex);
+  const cityActivities = mockActivities.filter((activity) => activity.city === city.name).slice(0, 3);
+
+  const includedServices: ServiceType[] =
+    supplier.role === 'driver'
+      ? ['driver']
+      : supplier.role === 'guide'
+        ? ['guide']
+        : ['activity_provider'];
+
+  return {
+    id: `pkg-${city.id}`,
+    supplierId: supplier.id,
+    supplierName: supplier.name,
+    supplierRole: supplier.role,
+    supplierRating: supplier.rating,
+    supplierReviewCount: supplier.reviewCount,
+    supplierAvatar: supplier.avatar,
+    title: `${city.name} Supplier Experience Pack`,
+    description: `Supplier-posted package in ${city.name} including curated activities for travelers.`,
+    country: city.country,
+    city: city.name,
+    price: 220 + cityIndex * 3,
+    currency: 'USD',
+    duration: '1 day',
+    durationUnit: 'days',
+    groupSizeMin: 1,
+    groupSizeMax: 10,
+    category: cityActivities[0]?.category || 'sightseeing',
+    difficulty: cityActivities[0]?.difficulty || 'easy',
+    includedServices,
+    itinerary: [
+      {
+        day: 1,
+        title: `${city.name} curated route`,
+        description: `Run by ${supplier.name} (${supplier.role.replace('_', ' ')}).`,
+        activities: cityActivities.map((activity) => activity.title || activity.name),
+        duration: 'full day',
       },
-      rating: Number((4.5 + ((idx % 5) * 0.1)).toFixed(1)),
-      reviewCount: 120 + idx * 13,
-      popularityScore: 70 + (idx % 25),
-      tags: [seed.city.toLowerCase().replace(' ', '-'), seed.category],
-    } as Activity;
-  }),
-];
+    ],
+    included: ['Supplier coordination', 'Local insights', 'Trip support'],
+    notIncluded: ['Flights', 'Personal expenses', 'Travel insurance'],
+    meetingPoint: `${city.name} Central Meeting Point`,
+    dropoffPoint: `${city.name} City Center`,
+    images: [`https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1000&sig=${cityIndex + 1}`],
+    requirements: 'Comfortable walking shoes and valid ID.',
+    cancellationPolicy: 'Free cancellation up to 24 hours before start time.',
+    highlights: ['Posted by verified supplier', 'Top city activities', 'Instant booking demo'],
+    tags: [slugify(city.name), slugify(city.country), 'supplier-posted'],
+    createdAt: new Date(Date.now() - cityIndex * 86400000).toISOString(),
+    bookings: 12 + (cityIndex % 20),
+    rating: Number((4.5 + (cityIndex % 5) * 0.1).toFixed(1)),
+  };
+});
+
+const mockCitiesWithPackages: City[] = mockCities.map((city) => ({
+  ...city,
+  packages: mockPackages.filter((pkg) => pkg.city === city.name).map((pkg) => pkg.id),
+}));
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
@@ -2002,8 +1973,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     tripPlan: null,
     // Global marketplace state
     countries: mockCountries,
-    cities: mockCities,
-    packages: [],
+    cities: mockCitiesWithPackages,
+    packages: mockPackages,
     cart: [],
     searchQuery: '',
     selectedCity: undefined,

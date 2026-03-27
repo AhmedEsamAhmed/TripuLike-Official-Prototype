@@ -7,7 +7,7 @@ import { Search, MapPin, ChevronRight } from 'lucide-react';
 
 export default function TravelerHome() {
   const navigate = useNavigate();
-  const { user, notifications, packages, countries, cities } = useApp();
+  const { user, notifications, packages, countries, cities, activities } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -21,6 +21,19 @@ export default function TravelerHome() {
   const citiesForCountry = selectedCountry 
     ? cities.filter(c => c.country === selectedCountry)
     : [];
+
+  const activitiesForDestination = selectedCity
+    ? activities.filter((activity) => activity.city === selectedCity).slice(0, 10)
+    : selectedCountry
+      ? activities.filter((activity) => activity.country === selectedCountry).slice(0, 10)
+      : activities.slice(0, 10);
+
+  const supplierPackageByCity = packages.reduce((acc, pkg) => {
+    if (!acc[pkg.city]) {
+      acc[pkg.city] = pkg;
+    }
+    return acc;
+  }, {} as Record<string, typeof packages[number]>);
 
   // Package filtering and categorization
   const popular = packages.slice(0, 4); // Most booked/highest rated
@@ -111,7 +124,7 @@ export default function TravelerHome() {
                 >
                   <option value="">All Countries</option>
                   {countries.map(c => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
+                    <option key={c.code} value={c.name}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -247,6 +260,38 @@ export default function TravelerHome() {
                         onClick={() => handlePackageClick(pkg)}
                       />
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Activities (10 per city seeded) */}
+              {activitiesForDestination.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      🎯 {selectedCity ? `${selectedCity} Activities` : selectedCountry ? `${selectedCountry} Activities` : 'Featured Activities'}
+                    </h2>
+                    <span className="text-sm font-semibold text-gray-500">{activitiesForDestination.length} shown</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {activitiesForDestination.map((activity) => {
+                      const supplierPackage = supplierPackageByCity[activity.city];
+
+                      return (
+                        <div key={activity.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="font-bold text-gray-900">{activity.title || activity.name}</h3>
+                              <p className="text-sm text-gray-600 mt-1">{activity.city}, {activity.country}</p>
+                              <p className="text-xs text-green-700 mt-2 font-semibold">
+                                Posted by supplier: {supplierPackage?.supplierName || 'Verified local supplier'}
+                              </p>
+                            </div>
+                            <span className="text-sm font-bold text-blue-600">${activity.price || activity.estimatedPrice}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
