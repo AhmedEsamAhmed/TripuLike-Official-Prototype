@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { useApp } from '../../context/AppContext';
 import {
   ArrowLeft,
@@ -45,10 +45,15 @@ const ACTIVITY_TYPES_MAP: Record<string, string[]> = {
 
 export default function TripPlan() {
   const navigate = useNavigate();
-  const { tripPlan, removeActivityFromPlan, publishTripRequest, updateTripPlan } = useApp();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const location = useLocation();
+  const { tripPlan, removeActivityFromPlan, publishTripRequest, updateTripPlan, countries, cart, getCartTotal } = useApp();
+  const requestedStep = Number(new URLSearchParams(location.search).get('step'));
+  const initialStep = requestedStep === 2 || requestedStep === 3 ? (requestedStep as 2 | 3) : 1;
+  const [step, setStep] = useState<1 | 2 | 3>(initialStep);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const [requestTitle, setRequestTitle] = useState(tripPlan?.requestTitle || '');
+  const [country, setCountry] = useState(tripPlan?.country || countries[0]?.name || 'Malaysia');
   const [city, setCity] = useState(tripPlan?.city || 'Kuala Lumpur');
   const [tripDate, setTripDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
@@ -56,6 +61,8 @@ export default function TripPlan() {
   const [numberOfPeople, setNumberOfPeople] = useState(2);
   const [budget, setBudget] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'full' | 'deposit'>('deposit');
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   const autoSuggestedServices = useMemo(
     () =>
@@ -67,6 +74,8 @@ export default function TripPlan() {
   const [selectedServices, setSelectedServices] = useState<ServiceType[]>(
     tripPlan?.selectedServices?.length ? tripPlan.selectedServices : autoSuggestedServices
   );
+
+  const selectedService = selectedServices[0];
 
   // DRIVER STATE
   const [driverTripType, setDriverTripType] = useState<'hourly' | 'half_day' | 'full_day' | 'airport'>('half_day');
@@ -136,18 +145,11 @@ export default function TripPlan() {
 
   const totalDuration = tripPlan.selectedActivities.reduce((sum, act) => sum + act.duration, 0);
   const totalCost = tripPlan.selectedActivities.reduce((sum, act) => sum + act.estimatedPrice, 0);
+  const packageTotal = getCartTotal();
   const today = new Date().toISOString().split('T')[0];
 
-  const toggleService = (service: ServiceType) => {
-    setSelectedServices((prev) =>
-      prev.includes(service) ? prev.filter((item) => item !== service) : [...prev, service]
-    );
-  };
-
-  const toggleGuideTourTypes = (tourType: string) => {
-    setGuideTourTypes((prev) =>
-      prev.includes(tourType) ? prev.filter((item) => item !== tourType) : [...prev, tourType]
-    );
+  const selectServiceType = (service: ServiceType) => {
+    setSelectedServices([service]);
   };
 
   const updateDriverStop = (index: number, field: string, value: any) => {
@@ -255,9 +257,12 @@ export default function TripPlan() {
   };
 
   const validateForPublish = (): string | null => {
-    if (selectedServices.length === 0) return 'Select at least one service.';
+    if (!requestTitle.trim()) return 'Trip title is required.';
+    if (selectedServices.length === 0) return 'Select one supplier type.';
+    if (selectedServices.length > 1) return 'Only one supplier type is allowed per request.';
     if (!tripDate) return 'Date is required.';
     if (!budget || Number(budget) <= 0) return 'Enter a valid budget.';
+    if (!paymentConfirmed) return 'Confirm payment authorization to continue.';
 
     if (selectedServices.includes('driver')) {
       if (!driverPickup.trim() || !driverDropoff.trim()) {
@@ -296,6 +301,8 @@ export default function TripPlan() {
     const requiredServices = buildRequiredServices();
     const updatedPlan = {
       ...tripPlan,
+      requestTitle: requestTitle.trim(),
+      country,
       city,
       tripDate,
       estimatedBudget: Number(budget),
@@ -313,6 +320,8 @@ export default function TripPlan() {
     };
 
     updateTripPlan({
+      requestTitle: requestTitle.trim(),
+      country,
       city,
       selectedServices,
       requiredServices,
@@ -386,72 +395,71 @@ export default function TripPlan() {
 
         {step === 1 && (
           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
-            <h3 className="font-bold text-gray-900">1. Select Services Needed</h3>
+            <h3 className="font-bold text-gray-900">1. Trip Identity</h3>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Trip Title</label>
+              <input
+                value={requestTitle}
+                onChange={(e) => setRequestTitle(e.target.value)}
+                placeholder="Example: Family Adventure in Bali"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                >
+                  {countries.map((item) => (
+                    <option key={item.code} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="City"
+                  className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                />
+              </div>
+            </div>
+
+            <h4 className="font-semibold text-gray-900 pt-2">Supplier Type Needed</h4>
             <div className="grid grid-cols-2 gap-2">
               {serviceOptions.map((service) => (
-                <label
+                <button
                   key={service.type}
-                  className={`border rounded-lg px-3 py-3 flex items-center gap-2 cursor-pointer ${
-                    selectedServices.includes(service.type) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
+                  type="button"
+                  onClick={() => selectServiceType(service.type)}
+                  className={`border rounded-lg px-3 py-3 flex items-center gap-2 text-left ${
+                    selectedService === service.type ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedServices.includes(service.type)}
-                    onChange={() => toggleService(service.type)}
-                  />
                   <span>{service.icon}</span>
                   <span className="text-sm font-semibold text-gray-900">{service.label}</span>
-                </label>
+                </button>
               ))}
             </div>
 
             <div className="space-y-3 pt-3 border-t border-gray-200">
-              <h4 className="font-semibold text-gray-900">Basic Info</h4>
-              <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={tripDate}
-                  min={today}
-                  onChange={(e) => setTripDate(e.target.value)}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg"
-                />
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <input
-                type="number"
-                min={1}
-                value={estimatedDurationHours}
-                onChange={(e) => setEstimatedDurationHours(e.target.value)}
-                placeholder="Estimated duration (hours)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              />
-              <input
-                type="number"
-                min={1}
-                value={numberOfPeople}
-                onChange={(e) => setNumberOfPeople(parseInt(e.target.value, 10) || 1)}
-                placeholder="Number of people"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              />
+              <p className="text-sm text-gray-600">
+                Next page will show only the form for your selected supplier type.
+              </p>
             </div>
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-4">
-            {selectedServices.includes('translator') && (
+            {selectedService === 'translator' && (
               <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
                 <h3 className="font-bold text-gray-900">Translator Request</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -481,7 +489,7 @@ export default function TripPlan() {
               </div>
             )}
 
-            {selectedServices.includes('driver') && (
+            {selectedService === 'driver' && (
               <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">🚗 Plan Your Driver Trip</h3>
@@ -650,7 +658,7 @@ export default function TripPlan() {
               </div>
             )}
 
-            {selectedServices.includes('guide') && (
+            {selectedService === 'guide' && (
               <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">🗺️ Plan Your Guided Experience</h3>
@@ -831,7 +839,7 @@ export default function TripPlan() {
               </div>
             )}
 
-            {selectedServices.includes('activity_provider') && (
+            {selectedService === 'activity_provider' && (
               <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">🌊 Choose Your Activity Experience</h3>
@@ -984,11 +992,69 @@ export default function TripPlan() {
           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
             <h3 className="font-bold text-gray-900">3. Review & Publish</h3>
             <div className="text-sm text-gray-700 space-y-2">
+              <p><span className="font-semibold">Trip Title:</span> {requestTitle || 'Not set'}</p>
+              <p><span className="font-semibold">Country:</span> {country}</p>
               <p><span className="font-semibold">City:</span> {city}</p>
               <p><span className="font-semibold">Date:</span> {tripDate || 'Not set'}</p>
               <p><span className="font-semibold">Time:</span> {startTime}</p>
               <p><span className="font-semibold">People:</span> {numberOfPeople}</p>
               <p><span className="font-semibold">Services:</span> {selectedServices.map((item) => item.replace('_', ' ')).join(', ') || 'None'}</p>
+            </div>
+
+            {(tripPlan.selectedPackages?.length || cart.length > 0) && (
+              <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                <p className="text-sm font-semibold text-gray-900 mb-2">Selected Trips / Packages</p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  {(tripPlan.selectedPackages || []).map((pkg) => (
+                    <p key={`selected-pkg-${pkg.id}`}>- {pkg.title} ({pkg.city})</p>
+                  ))}
+                  {cart.map((item) => (
+                    <p key={`cart-item-${item.id}`}>- {item.package.title} x {item.quantity}{item.selectedDate ? ` on ${item.selectedDate}` : ''}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Trip Date</label>
+              <input
+                type="date"
+                value={tripDate}
+                min={today}
+                onChange={(e) => setTripDate(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={estimatedDurationHours}
+                  onChange={(e) => setEstimatedDurationHours(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Number of People</label>
+              <input
+                type="number"
+                min={1}
+                value={numberOfPeople}
+                onChange={(e) => setNumberOfPeople(parseInt(e.target.value, 10) || 1)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1010,8 +1076,28 @@ export default function TripPlan() {
               placeholder="Additional notes (optional)"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none"
             />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Payment Option</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as 'full' | 'deposit')}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              >
+                <option value="deposit">Deposit now (secure supplier offers)</option>
+                <option value="full">Full payment authorization</option>
+              </select>
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={paymentConfirmed}
+                  onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                  className="mt-1"
+                />
+                I confirm this payment authorization so my request can be posted to matching suppliers.
+              </label>
+            </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
-              Estimated total: RM {totalCost + (Number(budget) || 0)}
+              Estimated total: RM {totalCost + packageTotal + (Number(budget) || 0)}
             </div>
           </div>
         )}

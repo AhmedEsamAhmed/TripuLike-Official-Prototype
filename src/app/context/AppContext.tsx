@@ -197,6 +197,12 @@ const slugify = (value: string) =>
 
 const buildCityId = (countryCode: string, cityName: string) => `${countryCode.toLowerCase()}-${slugify(cityName)}`;
 
+const ACTIVITIES_PER_CITY = 18;
+const PACKAGES_PER_CITY = 4;
+
+const getCountryNameByCity = (cityName: string, cities: City[]) =>
+  cities.find((city) => city.name.toLowerCase() === cityName.toLowerCase())?.country || 'Malaysia';
+
 const mockCountries: Country[] = countryCitySeeds.map((country) => ({
   code: country.code,
   name: country.name,
@@ -249,7 +255,7 @@ const mockCities: City[] = countryCitySeeds.flatMap((country, countryIdx) =>
       latitude: point.lat,
       longitude: point.lng,
       description: `${cityName} in ${country.name} with curated experiences from local suppliers.`,
-      activities: Array.from({ length: 10 }, (_, idx) => `act-${buildCityId(country.code, cityName)}-${idx + 1}`),
+      activities: Array.from({ length: ACTIVITIES_PER_CITY }, (_, idx) => `act-${buildCityId(country.code, cityName)}-${idx + 1}`),
       packages: [],
       highlights: cityHighlightsByCountry[country.code],
     };
@@ -1842,6 +1848,27 @@ const activityBlueprints: Array<{
   { title: 'Wellness Reset Experience', category: 'wellness', duration: 120, price: 88, difficulty: 'easy', requiredServices: ['activity_provider'] },
   { title: 'Shopping District Insider Tour', category: 'shopping', duration: 180, price: 76, difficulty: 'easy', requiredServices: ['guide', 'driver'] },
   { title: 'Premium Signature Journey', category: 'sightseeing', duration: 300, price: 130, difficulty: 'moderate', requiredServices: ['driver', 'guide'] },
+  { title: 'Sunrise Photography Walk', category: 'sightseeing', duration: 120, price: 60, difficulty: 'easy', requiredServices: ['guide'] },
+  { title: 'Craft & Culture Workshop', category: 'cultural', duration: 180, price: 82, difficulty: 'easy', requiredServices: ['guide', 'activity_provider'] },
+  { title: 'River Kayak Explorer', category: 'adventure', duration: 200, price: 108, difficulty: 'moderate', requiredServices: ['activity_provider'] },
+  { title: 'Coastal Sunset Cruise', category: 'water_sports', duration: 210, price: 118, difficulty: 'moderate', requiredServices: ['activity_provider', 'guide'] },
+  { title: 'Family Discovery Quest', category: 'nature', duration: 150, price: 74, difficulty: 'easy', requiredServices: ['guide'] },
+  { title: 'Hidden Gems Night Route', category: 'nightlife', duration: 180, price: 86, difficulty: 'moderate', requiredServices: ['guide', 'driver'] },
+  { title: 'Boutique Wellness Circuit', category: 'wellness', duration: 160, price: 96, difficulty: 'easy', requiredServices: ['activity_provider'] },
+  { title: 'Local Market Deep Dive', category: 'shopping', duration: 170, price: 79, difficulty: 'easy', requiredServices: ['guide'] },
+];
+
+const packageBlueprints: Array<{
+  titleSuffix: string;
+  duration: string;
+  category: Activity['category'];
+  basePrice: number;
+  highlight: string;
+}> = [
+  { titleSuffix: 'City Essentials', duration: '1 day', category: 'sightseeing', basePrice: 210, highlight: 'Best for first-time visitors' },
+  { titleSuffix: 'Culture & Food Journey', duration: '2 days', category: 'food', basePrice: 330, highlight: 'Local food and heritage focus' },
+  { titleSuffix: 'Adventure Escape', duration: '2 days', category: 'adventure', basePrice: 360, highlight: 'Outdoor and active experiences' },
+  { titleSuffix: 'Premium Signature Route', duration: '3 days', category: 'wellness', basePrice: 520, highlight: 'Comfort-first curated experience' },
 ];
 
 const supplierPackageUsers = mockUsers.filter((user) =>
@@ -1891,61 +1918,66 @@ const mockActivities: Activity[] = mockCities.flatMap((city, cityIndex) =>
   })
 );
 
-const mockPackages: Package[] = mockCities.map((city, cityIndex) => {
-  const supplier = pickSupplierForCity(city.name, cityIndex);
-  const cityActivities = mockActivities.filter((activity) => activity.city === city.name).slice(0, 3);
+const mockPackages: Package[] = mockCities.flatMap((city, cityIndex) =>
+  Array.from({ length: PACKAGES_PER_CITY }, (_, packageIndex) => {
+    const supplier = pickSupplierForCity(city.name, cityIndex + packageIndex);
+    const cityActivities = mockActivities
+      .filter((activity) => activity.city === city.name)
+      .slice(packageIndex * 3, packageIndex * 3 + 3);
+    const packageBlueprint = packageBlueprints[packageIndex % packageBlueprints.length];
 
-  const includedServices: ServiceType[] =
-    supplier.role === 'driver'
-      ? ['driver']
-      : supplier.role === 'guide'
-        ? ['guide']
-        : ['activity_provider'];
+    const includedServices: ServiceType[] =
+      supplier.role === 'driver'
+        ? ['driver']
+        : supplier.role === 'guide'
+          ? ['guide']
+          : ['activity_provider'];
 
-  return {
-    id: `pkg-${city.id}`,
-    supplierId: supplier.id,
-    supplierName: supplier.name,
-    supplierRole: supplier.role,
-    supplierRating: supplier.rating,
-    supplierReviewCount: supplier.reviewCount,
-    supplierAvatar: supplier.avatar,
-    title: `${city.name} Supplier Experience Pack`,
-    description: `Supplier-posted package in ${city.name} including curated activities for travelers.`,
-    country: city.country,
-    city: city.name,
-    price: 220 + cityIndex * 3,
-    currency: 'USD',
-    duration: '1 day',
-    durationUnit: 'days',
-    groupSizeMin: 1,
-    groupSizeMax: 10,
-    category: cityActivities[0]?.category || 'sightseeing',
-    difficulty: cityActivities[0]?.difficulty || 'easy',
-    includedServices,
-    itinerary: [
-      {
-        day: 1,
-        title: `${city.name} curated route`,
-        description: `Run by ${supplier.name} (${supplier.role.replace('_', ' ')}).`,
+    const tripDays = Number(packageBlueprint.duration.split(' ')[0]) || 1;
+
+    return {
+      id: `pkg-${city.id}-${packageIndex + 1}`,
+      supplierId: supplier.id,
+      supplierName: supplier.name,
+      supplierRole: supplier.role,
+      supplierRating: supplier.rating,
+      supplierReviewCount: supplier.reviewCount,
+      supplierAvatar: supplier.avatar,
+      title: `${city.name} ${packageBlueprint.titleSuffix}`,
+      description: `Supplier-posted package in ${city.name} featuring bookable highlights and activity combinations for travelers.`,
+      country: city.country,
+      city: city.name,
+      price: packageBlueprint.basePrice + cityIndex * 3 + packageIndex * 18,
+      currency: 'USD',
+      duration: packageBlueprint.duration,
+      durationUnit: 'days',
+      groupSizeMin: packageIndex % 2 === 0 ? 1 : 2,
+      groupSizeMax: 10 + packageIndex * 2,
+      category: cityActivities[0]?.category || packageBlueprint.category,
+      difficulty: cityActivities[0]?.difficulty || 'easy',
+      includedServices,
+      itinerary: Array.from({ length: tripDays }, (_, dayIndex) => ({
+        day: dayIndex + 1,
+        title: `${city.name} curated route - Day ${dayIndex + 1}`,
+        description: `Hosted by ${supplier.name} (${supplier.role.replace('_', ' ')}).`,
         activities: cityActivities.map((activity) => activity.title || activity.name),
         duration: 'full day',
-      },
-    ],
-    included: ['Supplier coordination', 'Local insights', 'Trip support'],
-    notIncluded: ['Flights', 'Personal expenses', 'Travel insurance'],
-    meetingPoint: `${city.name} Central Meeting Point`,
-    dropoffPoint: `${city.name} City Center`,
-    images: [`https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1000&sig=${cityIndex + 1}`],
-    requirements: 'Comfortable walking shoes and valid ID.',
-    cancellationPolicy: 'Free cancellation up to 24 hours before start time.',
-    highlights: ['Posted by verified supplier', 'Top city activities', 'Instant booking demo'],
-    tags: [slugify(city.name), slugify(city.country), 'supplier-posted'],
-    createdAt: new Date(Date.now() - cityIndex * 86400000).toISOString(),
-    bookings: 12 + (cityIndex % 20),
-    rating: Number((4.5 + (cityIndex % 5) * 0.1).toFixed(1)),
-  };
-});
+      })),
+      included: ['Supplier coordination', 'Local insights', 'Trip support'],
+      notIncluded: ['Flights', 'Personal expenses', 'Travel insurance'],
+      meetingPoint: `${city.name} Central Meeting Point`,
+      dropoffPoint: `${city.name} City Center`,
+      images: [`https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1000&sig=${cityIndex * 10 + packageIndex + 1}`],
+      requirements: 'Comfortable walking shoes and valid ID.',
+      cancellationPolicy: 'Free cancellation up to 24 hours before start time.',
+      highlights: ['Posted by verified supplier', 'Top city activities', packageBlueprint.highlight],
+      tags: [slugify(city.name), slugify(city.country), 'supplier-posted'],
+      createdAt: new Date(Date.now() - (cityIndex * 4 + packageIndex) * 86400000).toISOString(),
+      bookings: 12 + (cityIndex % 20) + packageIndex * 3,
+      rating: Number((4.5 + ((cityIndex + packageIndex) % 5) * 0.1).toFixed(1)),
+    };
+  })
+);
 
 const mockCitiesWithPackages: City[] = mockCities.map((city) => ({
   ...city,
@@ -2573,8 +2605,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const plan = prev.tripPlan ?? {
         id: `tp-${Date.now()}`,
         userId: prev.user?.id || 'u1',
+        requestTitle: '',
         city: activity.city,
+        country: activity.country || getCountryNameByCity(activity.city, prev.cities),
         selectedActivities: [],
+        selectedPackages: [],
         selectedServices: [],
         totalEstimatedCost: 0,
         status: 'draft' as const,
@@ -2595,6 +2630,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         tripPlan: {
           ...plan,
           city: plan.city || activity.city,
+          country: plan.country || activity.country || getCountryNameByCity(activity.city, prev.cities),
           selectedActivities,
           selectedServices,
           totalEstimatedCost: selectedActivities.reduce((sum, item) => sum + item.estimatedPrice, 0),
@@ -2624,8 +2660,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       tripPlan: {
         id: `tp-${Date.now()}`,
         userId: prev.user?.id || 'u1',
+        requestTitle: '',
         city,
+        country: getCountryNameByCity(city, prev.cities),
         selectedActivities: [],
+        selectedPackages: [],
         selectedServices: [],
         totalEstimatedCost: 0,
         status: 'draft',
@@ -2688,7 +2727,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const newTrip: Trip = {
       id: `t${Date.now()}`,
-      title: `Custom Trip to ${tripPlan.city}`,
+      title: tripPlan.requestTitle?.trim() || `Custom Trip to ${tripPlan.city}`,
       city: tripPlan.city,
       startDate,
       endDate,

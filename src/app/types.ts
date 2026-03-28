@@ -453,6 +453,7 @@ export interface Activity {
 export interface TripPlan {
   id: string;
   userId: string;
+  requestTitle?: string;
   city: string;
   country: string;
   selectedActivities: Activity[];
