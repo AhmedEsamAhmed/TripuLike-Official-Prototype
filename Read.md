@@ -1,7 +1,7 @@
 # TripuLike Marketplace Prototype - Complete Update Guide
 
 ## Project Purpose
-TripuLike is a two-sided travel marketplace prototype connecting:
+TripuLike is travel experience platform  connecting:
 - Travelers/Customers (demand side)
 - Suppliers/Providers (supply side: driver, guide, translator, activity operator)
 
