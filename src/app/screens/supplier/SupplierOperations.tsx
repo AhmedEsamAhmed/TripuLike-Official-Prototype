@@ -17,6 +17,8 @@ export default function SupplierOperations() {
     return null;
   }
 
+  const isVerifiedSupplier = user.verificationStatus === 'verified';
+
   const supplierOperatingArea = user.operatingLocation || user.location || 'Kuala Lumpur';
 
   const getServiceTypes = (trip: Trip): ServiceType[] =>
@@ -131,6 +133,19 @@ export default function SupplierOperations() {
           </div>
         </div>
 
+        {!isVerifiedSupplier && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800">
+            <p className="font-semibold">Verification required</p>
+            <p className="text-sm mt-1">Only verified suppliers can view matching requests and submit offers.</p>
+            <button
+              onClick={() => navigate('/supplier/verification')}
+              className="mt-3 px-3 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700"
+            >
+              Complete Verification
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-2 bg-white p-1 rounded-xl border border-gray-200">
           {[
             { value: 'requests', label: 'Available Requests' },
@@ -151,12 +166,17 @@ export default function SupplierOperations() {
 
         {activeTab === 'requests' && (
           <div className="space-y-4">
+            {!isVerifiedSupplier && (
+              <div className="bg-white rounded-2xl p-8 text-center border border-gray-200">
+                <p className="font-semibold text-gray-900">Requests are hidden until your profile is verified.</p>
+              </div>
+            )}
             {requestTrips.length === 0 && (
               <div className="bg-white rounded-2xl p-8 text-center border border-gray-200">
                 <p className="font-semibold text-gray-900">No matching requests currently</p>
               </div>
             )}
-            {requestTrips.map((request) => (
+            {isVerifiedSupplier && requestTrips.map((request) => (
               <div key={request.id} className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
                 <div className="flex items-start justify-between mb-4">
                   <div>

@@ -10,7 +10,7 @@ import { StopTrackingInfo } from '../../types';
 export default function ActiveTrip() {
   const navigate = useNavigate();
   const { bookingId } = useParams();
-  const { bookings, startTrip, completeTrip } = useApp();
+  const { bookings, startTrip, completeTrip, addNotification, user } = useApp();
   const [showEmergency, setShowEmergency] = useState(false);
   const [emergencyTriggered, setEmergencyTriggered] = useState(false);
   const [tripStarted, setTripStarted] = useState(false);
@@ -429,6 +429,29 @@ export default function ActiveTrip() {
           onConfirm={() => {
             setEmergencyTriggered(true);
             setShowEmergency(false);
+
+            const locationSnapshot = {
+              lat: currentStop?.location?.lat || trip.stops[0]?.location?.lat || 0,
+              lng: currentStop?.location?.lng || trip.stops[0]?.location?.lng || 0,
+            };
+
+            addNotification({
+              userId: 'admin-ops',
+              type: 'trip_started',
+              title: 'SOS Alert Triggered',
+              message: `Emergency alert for booking ${booking.id} at (${locationSnapshot.lat}, ${locationSnapshot.lng}).`,
+              link: `/traveler/active-trip/${booking.id}`,
+              read: false,
+            });
+
+            addNotification({
+              userId: user?.id || booking.travelerId,
+              type: 'trip_started',
+              title: 'Support Team Notified',
+              message: 'Your SOS alert has been sent with your latest GPS location. A support agent will contact you.',
+              link: `/traveler/chats`,
+              read: false,
+            });
           }}
         />
       )}

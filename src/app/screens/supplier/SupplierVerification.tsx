@@ -30,6 +30,13 @@ export default function SupplierVerification() {
     languagePairs: user?.languages || [],
     activityTypes: [] as string[],
     groupSize: '8',
+    docs: {
+      motacOrTobtab: false,
+      psv: false,
+      tourismVehicleLicense: false,
+      idPassport: false,
+      insuranceProof: false,
+    },
   });
 
   const activityTypeOptions = ['sea', 'indoor', 'outdoor', 'adventure', 'wellness', 'family'];
@@ -45,6 +52,21 @@ export default function SupplierVerification() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const docs = formData.docs;
+    const requiresDrivingLicenses = user?.role === 'driver';
+    const missingRequiredDocs = [
+      !docs.idPassport,
+      !docs.insuranceProof,
+      !docs.motacOrTobtab,
+      requiresDrivingLicenses && !docs.psv,
+      requiresDrivingLicenses && !docs.tourismVehicleLicense,
+    ].some(Boolean);
+
+    if (missingRequiredDocs) {
+      alert('Please complete all required verification documents before submission.');
+      return;
+    }
 
     const guideSpecialties = formData.guideSpecialtiesInput
       .split(',')
@@ -316,7 +338,7 @@ export default function SupplierVerification() {
           {/* License Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {user?.role === 'driver' ? 'Driver License' : 'Professional License'}
+              {user?.role === 'driver' ? 'PSV / Driver License' : 'MOTAC / TOBTAB License'}
             </label>
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -332,6 +354,82 @@ export default function SupplierVerification() {
             onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
             required
           />
+
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+            <p className="text-sm font-semibold text-gray-900 mb-3">Required Compliance Documents</p>
+            <div className="space-y-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.docs.motacOrTobtab}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      docs: { ...prev.docs, motacOrTobtab: e.target.checked },
+                    }))
+                  }
+                />
+                MOTAC / TOBTAB license uploaded
+              </label>
+              {user?.role === 'driver' && (
+                <>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.docs.psv}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          docs: { ...prev.docs, psv: e.target.checked },
+                        }))
+                      }
+                    />
+                    PSV license uploaded
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.docs.tourismVehicleLicense}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          docs: { ...prev.docs, tourismVehicleLicense: e.target.checked },
+                        }))
+                      }
+                    />
+                    Tourism vehicle license uploaded
+                  </label>
+                </>
+              )}
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.docs.idPassport}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      docs: { ...prev.docs, idPassport: e.target.checked },
+                    }))
+                  }
+                />
+                ID / Passport uploaded
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.docs.insuranceProof}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      docs: { ...prev.docs, insuranceProof: e.target.checked },
+                    }))
+                  }
+                />
+                Insurance proof uploaded
+              </label>
+            </div>
+            <p className="text-xs text-amber-700 mt-3">Incomplete document sets remain in Pending Approval.</p>
+          </div>
 
           {user?.role === 'driver' && (
             <>

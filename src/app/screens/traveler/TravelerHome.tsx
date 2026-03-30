@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router';
 import { useApp } from '../../context/AppContext';
 import { Header, BottomNavigation, Sidebar } from '../../components/design-system/Navigation';
 import PackageCard from '../../components/design-system/PackageCard';
-import { Search, MapPin, ChevronRight, ShoppingCart, Send, Plus, Compass, X } from 'lucide-react';
+import { Search, MapPin, ChevronRight, ShoppingCart, Send, Plus, Compass, X, Bot, Sparkles } from 'lucide-react';
 import { Activity } from '../../types';
 
-type HomeView = 'all' | 'supplier' | 'recommended';
+type HomeView = 'all' | 'supplier' | 'recommended' | 'ai';
 
 type RecommendedTrip = {
   id: string;
@@ -25,6 +25,26 @@ type RecommendedPlace = {
   duration: string;
   estimatedBudget: string;
   note: string;
+};
+
+type AIPlanOption = {
+  id: string;
+  title: string;
+  city: string;
+  country: string;
+  days: number;
+  estimatedCost: number;
+  source: 'supplier' | 'curated';
+  highlights: string[];
+  packageIds: string[];
+  activityIds: string[];
+};
+
+type AIChatMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  plans?: AIPlanOption[];
 };
 
 const DEFAULT_RECOMMENDED_PLACES: RecommendedPlace[] = [
@@ -156,6 +176,14 @@ export default function TravelerHome() {
   const [selectedCity, setSelectedCity] = useState('');
   const [view, setView] = useState<HomeView>('all');
   const [activeTripDetails, setActiveTripDetails] = useState<RecommendedTrip | null>(null);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiMessages, setAiMessages] = useState<AIChatMessage[]>([
+    {
+      id: 'ai-welcome',
+      role: 'assistant',
+      text: 'How can we make the Trip you like happen? Ask for plans, places, or activity ideas and I will build a sample itinerary from our listed destinations and supplier packages.',
+    },
+  ]);
 
   if (!user) return null;
 
@@ -287,6 +315,121 @@ export default function TravelerHome() {
     navigate('/traveler/trip-plan');
   };
 
+  const parseRequestedDays = (query: string): number => {
+    const matched = query.match(/(\d+)\s*day/i);
+    if (!matched) return 3;
+    return Math.min(14, Math.max(1, Number(matched[1])));
+  };
+
+  const inferQueryCity = (query: string): string => {
+    const normalized = query.toLowerCase();
+    const matchedCity = cities.find((entry) => normalized.includes(entry.name.toLowerCase()));
+    if (matchedCity) return matchedCity.name;
+    if (selectedCity) return selectedCity;
+    if (tripPlan?.city) return tripPlan.city;
+    return 'Kuala Lumpur';
+  };
+
+  const inferCountryByCity = (city: string): string => {
+    return cities.find((entry) => entry.name.toLowerCase() === city.toLowerCase())?.country || selectedCountry || 'Malaysia';
+  };
+
+  const buildAIPlans = (query: string): AIPlanOption[] => {
+    const requestedDays = parseRequestedDays(query);
+    const targetCity = inferQueryCity(query);
+    const targetCountry = inferCountryByCity(targetCity);
+
+    const cityPackages = packages
+      .filter((pkg) => pkg.city.toLowerCase() === targetCity.toLowerCase())
+      .slice(0, 3);
+
+    const cityActivities = activities
+      .filter((activity) => activity.city.toLowerCase() === targetCity.toLowerCase())
+      .slice(0, 9);
+
+    const packagePlans = cityPackages.map((pkg, idx) => ({
+      id: `ai-supplier-plan-${pkg.id}`,
+      title: `${requestedDays}D ${targetCity} Supplier Plan ${idx + 1}`,
+      city: targetCity,
+      country: targetCountry,
+      days: requestedDays,
+      estimatedCost: Math.round(pkg.price * Math.max(1, requestedDays / 2)),
+      source: 'supplier' as const,
+      highlights: [
+        pkg.title,
+        `Supplier: ${pkg.supplierName}`,
+        `${pkg.duration} format`,
+      ],
+      packageIds: [pkg.id],
+      activityIds: [],
+    }));
+
+    const curatedPlans = [0, 1].map((index) => {
+      const selectedActivities = cityActivities.slice(index * 3, index * 3 + 3);
+      return {
+        id: `ai-curated-plan-${targetCity.toLowerCase().replace(/\s+/g, '-')}-${index + 1}`,
+        title: `${requestedDays}D ${targetCity} Curated Plan ${index + 1}`,
+        city: targetCity,
+        country: targetCountry,
+        days: requestedDays,
+        estimatedCost: selectedActivities.reduce((sum, item) => sum + item.estimatedPrice, 0),
+        source: 'curated' as const,
+        highlights: selectedActivities.map((item) => item.title || item.name).slice(0, 3),
+        packageIds: [],
+        activityIds: selectedActivities.map((item) => item.id),
+      };
+    });
+
+    return [...packagePlans, ...curatedPlans].slice(0, 3);
+  };
+
+  const handleAskAI = (promptText: string) => {
+    const prompt = promptText.trim();
+    if (!prompt) return;
+
+    const plans = buildAIPlans(prompt);
+    const targetCity = inferQueryCity(prompt);
+    const assistantText = `I prepared ${plans.length} sample option(s) for ${targetCity}. These are demo AI suggestions based on listed destinations and supplier packages in your app.`;
+
+    setAiMessages((prev) => [
+      ...prev,
+      {
+        id: `ai-user-${Date.now()}`,
+        role: 'user',
+        text: prompt,
+      },
+      {
+        id: `ai-assistant-${Date.now() + 1}`,
+        role: 'assistant',
+        text: assistantText,
+        plans,
+      },
+    ]);
+
+    setAiPrompt('');
+  };
+
+  const checkoutAIPlan = (plan: AIPlanOption) => {
+    if (!tripPlan || tripPlan.city !== plan.city) {
+      createTripPlan(plan.city);
+    }
+
+    const selectedPlanActivities = activities.filter((activity) => plan.activityIds.includes(activity.id));
+    selectedPlanActivities.forEach((activity) => addActivityToPlan(activity));
+
+    const selectedPlanPackages = packages.filter((pkg) => plan.packageIds.includes(pkg.id));
+
+    updateTripPlan({
+      requestTitle: plan.title,
+      city: plan.city,
+      country: plan.country,
+      selectedPackages: selectedPlanPackages,
+      estimatedBudget: plan.estimatedCost,
+    });
+
+    navigate('/traveler/trip-plan?step=3');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-orange-50 pb-20">
       <Header
@@ -359,6 +502,12 @@ export default function TravelerHome() {
                 className={`rounded-xl py-2.5 font-semibold ${view === 'recommended' ? 'bg-white text-orange-600' : 'bg-blue-900/30 text-white border border-orange-200/50'}`}
             >
               Recommendations
+            </button>
+            <button
+              onClick={() => setView('ai')}
+              className={`rounded-xl py-2.5 font-semibold flex items-center justify-center gap-2 ${view === 'ai' ? 'bg-white text-blue-700' : 'bg-blue-900/30 text-white border border-orange-200/50'}`}
+            >
+              <Bot className="w-4 h-4" /> AI
             </button>
           </div>
         </div>
@@ -607,6 +756,92 @@ export default function TravelerHome() {
                 </div>
               </div>
             </>
+          )}
+
+          {view === 'ai' && (
+            <div className="bg-white rounded-3xl border border-blue-200 shadow-sm overflow-hidden">
+              <div className="bg-[radial-gradient(circle_at_top_left,_#1d4ed8,_#1e3a8a_45%,_#ea580c_100%)] p-5 text-white">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" /> AI Trip Assistant
+                </h2>
+                <p className="text-sm text-orange-100 mt-1">How can we make the Trip you like happen?</p>
+              </div>
+
+              <div className="p-4 space-y-3 max-h-[520px] overflow-y-auto bg-[linear-gradient(145deg,_rgba(219,234,254,0.5),_rgba(255,237,213,0.5))]">
+                {aiMessages.map((message) => (
+                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[92%] rounded-2xl p-3 ${message.role === 'user' ? 'bg-blue-600 text-white shadow-md' : 'bg-white border border-orange-200 text-gray-900 shadow-sm'}`}>
+                      <p className="text-sm">{message.text}</p>
+
+                      {message.plans && message.plans.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {message.plans.map((plan) => (
+                            <div key={plan.id} className="rounded-2xl border border-blue-200 bg-white p-3 shadow-sm">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="font-semibold text-blue-900">{plan.title}</p>
+                                  <p className="text-xs text-gray-700">{plan.city}, {plan.country} • {plan.days} day(s)</p>
+                                </div>
+                                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${plan.source === 'supplier' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                  {plan.source === 'supplier' ? 'Supplier-based' : 'Curated'}
+                                </span>
+                              </div>
+                              <div className="mt-2 text-xs text-gray-700 space-y-1 bg-blue-50/60 border border-blue-100 rounded-xl p-2">
+                                {plan.highlights.map((highlight) => (
+                                  <p key={highlight}>- {highlight}</p>
+                                ))}
+                              </div>
+                              <div className="mt-2 flex items-center justify-between">
+                                <p className="text-sm font-bold text-orange-700">RM {plan.estimatedCost}</p>
+                                <button
+                                  onClick={() => checkoutAIPlan(plan)}
+                                  className="px-3 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600"
+                                >
+                                  Checkout & Request Trip
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 border-t border-blue-100 bg-white space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Give me plans for 3 days trip in KL',
+                    'Recommend common places in Tokyo for 2 days',
+                    'Suggest family activities in Bangkok',
+                  ].map((samplePrompt) => (
+                    <button
+                      key={samplePrompt}
+                      onClick={() => handleAskAI(samplePrompt)}
+                      className="px-3 py-1.5 rounded-full border border-orange-200 bg-orange-50 text-orange-700 text-xs font-semibold hover:bg-orange-100"
+                    >
+                      {samplePrompt}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="Ask for places, recommendations, or full trip plans..."
+                    className="flex-1 px-3 py-3 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => handleAskAI(aiPrompt)}
+                    className="px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-sm"
+                  >
+                    Ask AI
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-500">Demo view only: AI responses are mock suggestions for presentation and testing.</p>
+              </div>
+            </div>
           )}
 
           {filteredPackages.length === 0 && filteredRecommendedActivities.length === 0 && (

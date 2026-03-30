@@ -2104,6 +2104,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const createOffer = (offer: Omit<Offer, 'id' | 'createdAt'>) => {
+    if (!state.user || state.user.verificationStatus !== 'verified') {
+      throw new Error('Only verified suppliers can submit offers.');
+    }
+
     const trip = state.trips.find((candidate) => candidate.id === offer.tripId);
     const userServiceType = state.user ? roleToServiceType(state.user.role) : null;
 
@@ -2173,27 +2177,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const acceptOffer = (offerId: string) => {
     const offer = state.offers.find((o) => o.id === offerId);
+    if (!offer) return;
+
+    if (new Date(offer.validUntil).getTime() < Date.now()) {
+      throw new Error('This offer has expired and cannot be accepted.');
+    }
     
     setState((prev) => ({
       ...prev,
       offers: prev.offers.map((o) =>
-        o.id === offerId ? { ...o, status: 'accepted' as const } : o
+        o.tripId !== offer.tripId
+          ? o
+          : o.id === offerId
+            ? { ...o, status: 'accepted' as const }
+            : { ...o, status: 'declined' as const }
       ),
     }));
 
-    if (offer) {
-      updateTripStatus(offer.tripId, 'price_locked');
-      
-      // Notify supplier
-      addNotification({
-        userId: offer.supplierId,
-        type: 'offer_accepted',
-        title: 'Offer Accepted! 🎉',
-        message: `Your offer for RM ${offer.price} has been accepted`,
-        link: `/supplier/trip/${offer.tripId}`,
-        read: false,
-      });
-    }
+    updateTripStatus(offer.tripId, 'price_locked');
+
+    // Notify supplier
+    addNotification({
+      userId: offer.supplierId,
+      type: 'offer_accepted',
+      title: 'Offer Accepted! 🎉',
+      message: `Your offer for RM ${offer.price} has been accepted and final price is now locked.`,
+      link: `/supplier/trip/${offer.tripId}`,
+      read: false,
+    });
   };
 
   const declineOffer = (offerId: string) => {
@@ -2221,6 +2232,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const counterOffer = (originalOfferId: string, newPrice: number, notes: string) => {
     const originalOffer = state.offers.find((o) => o.id === originalOfferId);
     if (!originalOffer || originalOffer.round >= 3) return;
+    if (new Date(originalOffer.validUntil).getTime() < Date.now()) return;
 
     setState((prev) => ({
       ...prev,
@@ -2241,7 +2253,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       supplierVerified: originalOffer.supplierVerified,
       price: newPrice,
       notes,
-      validUntil: originalOffer.validUntil,
+      validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       createdAt: new Date().toISOString(),
       round: originalOffer.round + 1,
       status: 'pending',
@@ -2269,12 +2281,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!trip || !offer) return;
 
     const finalPrice = offer.price;
-    const platformFeeRate = 0.12;
+    const platformFeeRate = 0.15;
     const platformFee = roundPrice(finalPrice * platformFeeRate);
-    const escrowAmount = roundPrice(finalPrice + platformFee);
-    const depositAmount = finalPrice;
+    const escrowAmount = roundPrice(finalPrice);
+    const depositAmount = roundPrice(finalPrice * 0.2);
     const commission = platformFee;
-    const supplierPayout = finalPrice;
+    const supplierPayout = roundPrice(finalPrice - commission);
 
     const bookingId = `b${Date.now()}`;
 
@@ -2286,8 +2298,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       supplierId: offer.supplierId,
       finalPrice,
       depositAmount,
-      depositPaid: true,
-      fullPayment: true,
+      depositPaid: paymentMethod === 'deposit',
+      fullPayment: paymentMethod === 'full',
       escrowHeld: escrowAmount,
       commission,
       supplierPayout,
@@ -2297,8 +2309,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       payoutToSupplier: supplierPayout,
       bookingDate: new Date().toISOString(),
       paymentMethod,
+      bookingStatus: 'paid',
       cancellationPolicy: {
-        moreThan24h: 100,
+        moreThan24h: 80,
         between10And24h: 50,
         lessThan10h: 0,
       },
@@ -2416,6 +2429,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setState((prev) => ({
         ...prev,
         activeBooking: null,
+        bookings: prev.bookings.map((entry) =>
+          entry.id === bookingId
+            ? {
+                ...entry,
+                bookingStatus: 'completed',
+                payoutToSupplier: roundPrice(entry.finalPrice - entry.commission),
+              }
+            : entry
+        ),
       }));
 
       // Notify both parties
@@ -2432,8 +2454,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         userId: booking.supplierId,
         type: 'payment_received',
         title: 'Payment Released',
-        message: `RM ${booking.payoutToSupplier || booking.supplierPayout} has been released to your account`,
+        message: `RM ${roundPrice(booking.finalPrice - booking.commission)} released (15% platform commission deducted). Invoice sent by email.`,
         link: `/supplier/dashboard`,
+        read: false,
+      });
+
+      addNotification({
+        userId: booking.travelerId,
+        type: 'booking_confirmed',
+        title: 'Invoice Sent',
+        message: 'Trip invoice has been sent to your email.',
+        link: `/traveler/my-trips`,
         read: false,
       });
     }
@@ -2462,6 +2493,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       link: `/supplier/profile`,
       read: false,
     });
+
+    if (review.serviceRating < 3) {
+      addNotification({
+        userId: 'admin-ops',
+        type: 'new_review',
+        title: 'Low Rating Alert',
+        message: `Supplier ${review.reviewedUserId} received a low rating (${review.serviceRating}/5).`,
+        read: false,
+      });
+    }
   };
 
   const createSocialPost = (post: Omit<SocialPost, 'id' | 'createdAt' | 'likes' | 'comments' | 'isLiked'>) => {
@@ -2502,11 +2543,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const cancelBooking = (bookingId: string) => {
     const booking = state.bookings.find((b) => b.id === bookingId);
     if (booking) {
+      const tripStart = new Date(booking.trip.startDate).getTime();
+      const now = Date.now();
+      const hoursUntilTrip = (tripStart - now) / (1000 * 60 * 60);
+      const refundRate = hoursUntilTrip > 24 ? 0.8 : hoursUntilTrip >= 10 ? 0.5 : 0;
+      const refundAmount = roundPrice(booking.finalPrice * refundRate);
+      const cancellationFee = roundPrice(booking.finalPrice - refundAmount);
+
       updateTripStatus(booking.tripId, 'cancelled');
       setState((prev) => ({
         ...prev,
-        bookings: prev.bookings.filter((b) => b.id !== bookingId),
+        bookings: prev.bookings.map((entry) =>
+          entry.id === bookingId
+            ? {
+                ...entry,
+                bookingStatus: 'cancelled',
+                cancellationReason: 'Traveler cancellation',
+                cancelledAt: new Date().toISOString(),
+                cancellationFee,
+              }
+            : entry
+        ),
       }));
+
+      addNotification({
+        userId: booking.travelerId,
+        type: 'booking_confirmed',
+        title: 'Refund Processed',
+        message: `Refund RM ${refundAmount} processed. Cancellation fee RM ${cancellationFee}.`,
+        link: '/traveler/my-trips',
+        read: false,
+      });
+
+      addNotification({
+        userId: booking.supplierId,
+        type: 'offer_declined',
+        title: 'Booking Cancelled',
+        message: 'Traveler cancelled this booking before trip start.',
+        link: '/supplier/bookings',
+        read: false,
+      });
     }
   };
 

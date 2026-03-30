@@ -46,7 +46,7 @@ const ACTIVITY_TYPES_MAP: Record<string, string[]> = {
 export default function TripPlan() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { tripPlan, removeActivityFromPlan, publishTripRequest, updateTripPlan, countries, cart, getCartTotal } = useApp();
+  const { tripPlan, removeActivityFromPlan, publishTripRequest, updateTripPlan, countries, cart, getCartTotal, removeFromCart } = useApp();
   const requestedStep = Number(new URLSearchParams(location.search).get('step'));
   const initialStep = requestedStep === 2 || requestedStep === 3 ? (requestedStep as 2 | 3) : 1;
   const [step, setStep] = useState<1 | 2 | 3>(initialStep);
@@ -63,6 +63,7 @@ export default function TripPlan() {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'full' | 'deposit'>('deposit');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [referenceDocs, setReferenceDocs] = useState<string[]>([]);
 
   const autoSuggestedServices = useMemo(
     () =>
@@ -299,6 +300,8 @@ export default function TripPlan() {
     }
 
     const requiredServices = buildRequiredServices();
+    const docsNote = referenceDocs.length > 0 ? `Reference Docs: ${referenceDocs.join(', ')}` : '';
+
     const updatedPlan = {
       ...tripPlan,
       requestTitle: requestTitle.trim(),
@@ -316,7 +319,7 @@ export default function TripPlan() {
         : undefined,
       pickupLocation: selectedServices.includes('driver') ? driverPickup : undefined,
       dropoffLocation: selectedServices.includes('driver') ? driverDropoff : undefined,
-      notes,
+      notes: [notes, docsNote].filter(Boolean).join(' | '),
     };
 
     updateTripPlan({
@@ -333,7 +336,7 @@ export default function TripPlan() {
         : undefined,
     });
 
-    const tripId = publishTripRequest(updatedPlan, numberOfPeople, notes);
+    const tripId = publishTripRequest(updatedPlan, numberOfPeople, [notes, docsNote].filter(Boolean).join(' | '));
     setShowSuccess(true);
     setTimeout(() => {
       navigate('/traveler/booking-management', { state: { newTripId: tripId } });
@@ -1006,14 +1009,52 @@ export default function TripPlan() {
                 <p className="text-sm font-semibold text-gray-900 mb-2">Selected Trips / Packages</p>
                 <div className="space-y-1 text-sm text-gray-700">
                   {(tripPlan.selectedPackages || []).map((pkg) => (
-                    <p key={`selected-pkg-${pkg.id}`}>- {pkg.title} ({pkg.city})</p>
+                    <div key={`selected-pkg-${pkg.id}`} className="flex items-center justify-between gap-2 bg-white rounded px-2 py-1 border border-gray-200">
+                      <p>- {pkg.title} ({pkg.city})</p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTripPlan({
+                            selectedPackages: (tripPlan.selectedPackages || []).filter((item) => item.id !== pkg.id),
+                          })
+                        }
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   ))}
                   {cart.map((item) => (
-                    <p key={`cart-item-${item.id}`}>- {item.package.title} x {item.quantity}{item.selectedDate ? ` on ${item.selectedDate}` : ''}</p>
+                    <div key={`cart-item-${item.id}`} className="flex items-center justify-between gap-2 bg-white rounded px-2 py-1 border border-gray-200">
+                      <p>- {item.package.title} x {item.quantity}{item.selectedDate ? ` on ${item.selectedDate}` : ''}</p>
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Reference Documents (optional)</label>
+              <input
+                type="file"
+                multiple
+                onChange={(e) => {
+                  const names = Array.from(e.target.files || []).map((file) => file.name);
+                  setReferenceDocs(names);
+                }}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              />
+              {referenceDocs.length > 0 && (
+                <p className="text-xs text-gray-600 mt-2">Attached: {referenceDocs.join(', ')}</p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Trip Date</label>

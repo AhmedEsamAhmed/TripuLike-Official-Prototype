@@ -1449,3 +1449,138 @@ SUPPLIER FLOW:
 ---
 
 This comprehensive guide covers the entire TripuLike system. Each role has clear permissions, defined workflows, and data models that support the two-sided marketplace model. The system scales from individual transactions to multi-day complex trips with multiple suppliers.
+
+---
+
+## Component Breakdown (Functions + User Flow)
+
+### A) Core Components
+
+1. **Routing Layer**
+- File: `src/app/routes.tsx`
+- Purpose: Maps every traveler/supplier/shared screen and controls page-level navigation.
+
+2. **Business Logic Layer (App Context)**
+- File: `src/app/context/AppContext.tsx`
+- Purpose: Single source of truth for trips, offers, bookings, payments, notifications, chats, reviews, packages, and cart/plan logic.
+
+3. **Domain Model Layer**
+- File: `src/app/types.ts`
+- Purpose: Defines strict data contracts for all core entities (Trip, Offer, Booking, TripPlan, Activity, Package, Chat, Review, Notification).
+
+4. **Traveler Feature Screens**
+- Home + recommendations + ready packages: `src/app/screens/traveler/TravelerHome.tsx`
+- Package details + immediate booking/cart: `src/app/screens/traveler/PackageDetails.tsx`
+- Activities discovery + add-to-plan: `src/app/screens/traveler/DiscoverActivities.tsx`
+- 3-step custom request builder: `src/app/screens/traveler/TripPlan.tsx`
+- Offer comparison/accept/counter: `src/app/screens/traveler/TripDetails.tsx`
+- Booking and request hub: `src/app/screens/traveler/BookingManagement.tsx`
+- Live trip tracking + SOS: `src/app/screens/traveler/ActiveTrip.tsx`
+- Post-trip ratings: `src/app/screens/traveler/ReviewTrip.tsx`
+
+5. **Supplier Feature Screens**
+- Supplier home and operation shortcuts: `src/app/screens/supplier/SupplierHome.tsx`
+- Compliance verification workflow: `src/app/screens/supplier/SupplierVerification.tsx`
+- Request matching/operations: `src/app/screens/supplier/SupplierOperations.tsx`
+- Request details + offer submission: `src/app/screens/supplier/SupplierTripDetails.tsx`
+- Package authoring/management: `src/app/screens/supplier/CreatePackage.tsx`, `src/app/screens/supplier/SupplierPackages.tsx`
+
+6. **Shared Screens**
+- Profile management: `src/app/screens/shared/Profile.tsx`
+- Chat system: `src/app/screens/shared/Chats.tsx`
+- Notifications feed: `src/app/screens/shared/Notifications.tsx`
+- Payment page: `src/app/screens/shared/Payment.tsx`
+
+---
+
+### B) Function Breakdown (Key AppContext Methods)
+
+1. **Profile & Session Functions**
+- `login(email, role)`
+- `logout()`
+- `updateUser(updates)`
+
+2. **Trip Planning and Posting Functions**
+- `createTripPlan(city)`
+- `addActivityToPlan(activity)`
+- `removeActivityFromPlan(activityId)`
+- `updateTripPlan(updates)`
+- `publishTripRequest(tripPlan, numberOfPeople, notes)`
+- `clearTripPlan()`
+
+3. **Offer and Negotiation Functions**
+- `createOffer(offer)` (verified suppliers only)
+- `acceptOffer(offerId)` (locks accepted offer and rejects alternatives)
+- `declineOffer(offerId)`
+- `counterOffer(originalOfferId, newPrice, notes)` (round and deadline aware)
+
+4. **Booking, Escrow, and Payment State Functions**
+- `createBooking(tripId, offerId, paymentMethod)`
+- `updateBookingStatus(bookingId, status)`
+- `cancelBooking(bookingId)` (refund + cancellation fee policy)
+- `startTrip(bookingId)`
+- `completeTrip(bookingId)` (release payout and notify invoice)
+
+5. **Marketplace Catalog Functions**
+- `searchPackages(query)`
+- `searchActivities(query)`
+- `createPackage(packageData)`
+- `getSupplierPackages(supplierId)`
+- `addToCart(packageId, quantity, date)`
+- `removeFromCart(cartItemId)`
+- `clearCart()`
+- `getCartTotal()`
+
+6. **Communication and Trust Functions**
+- `sendChatMessage(bookingId, message)`
+- `addNotification(notification)`
+- `markNotificationAsRead(notificationId)`
+- `submitReview(review)`
+
+---
+
+### C) Real User Flow (Traveler Use Case)
+
+**Use Case:** Family traveler plans a Kuala Lumpur day trip and requests a driver.
+
+1. Traveler opens Home (`/traveler/home`) and sets destination to Kuala Lumpur.
+2. Traveler browses recommendations and ready packages.
+3. Traveler adds activities/packages to plan/cart.
+4. Traveler opens Trip Plan (`/traveler/trip-plan`) and completes 3-page flow:
+   - Page 1: title + destination + single supplier type
+   - Page 2: dynamic supplier-specific request form
+   - Page 3: review + reference docs + budget + payment authorization + publish
+5. System posts request and notifies matching suppliers.
+6. Traveler receives multiple offers (e.g., RM 150 / RM 180 / RM 200).
+7. Traveler negotiates by countering one supplier; final accepted offer is locked.
+8. Traveler proceeds to booking, payment is held in escrow.
+9. Trip starts; traveler sees live timeline/tracking and can trigger SOS if needed.
+10. On completion, traveler submits review and supplier payout is released.
+
+---
+
+### D) Real User Flow (Supplier Use Case)
+
+**Use Case:** Verified KL driver responds to custom requests and completes booking.
+
+1. Supplier completes verification (`/supplier/verification`) and reaches verified status.
+2. Supplier opens Operations (`/supplier/operations`) and sees matching requests by role/location.
+3. Supplier opens request details (`/supplier/trip/:tripId`) and submits an offer with price + notes.
+4. Traveler counters; supplier accepts or counters within negotiation limits.
+5. Traveler accepts supplier offer; booking is created and trip enters booked state.
+6. Supplier communicates via in-app chat for pre-trip alignment.
+7. Supplier executes trip and updates progress in active trip flow.
+8. On completion, payout is released (after platform commission), and review updates supplier profile reputation.
+
+---
+
+### E) Practical Mapping (Who Uses What)
+
+- Traveler discovery and planning: `TravelerHome`, `DiscoverActivities`, `PackageDetails`, `TripPlan`
+- Negotiation and conversion: `TripDetails`, `BookingManagement`, `Booking`
+- Delivery and trust closure: `ActiveTrip`, `ReviewTrip`, `Profile`
+- Supplier demand intake: `SupplierOperations`, `SupplierTripDetails`
+- Supplier supply creation: `CreatePackage`, `SupplierPackages`
+- Shared communication and support: `Chats`, `Notifications`
+
+This breakdown shows how UI components, context functions, and state transitions work together to fulfill the marketplace journey for both traveler and supplier sides.

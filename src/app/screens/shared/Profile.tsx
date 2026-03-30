@@ -7,13 +7,39 @@ import { Star, Calendar, Shield, LogOut, MapPin, Languages, Briefcase } from 'lu
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, logout, reviews } = useApp();
+  const { user, logout, reviews, updateUser } = useApp();
+  const [editing, setEditing] = React.useState(false);
+  const [fullName, setFullName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [location, setLocation] = React.useState('');
+  const [avatar, setAvatar] = React.useState('');
+  const [baselinePrice, setBaselinePrice] = React.useState('');
 
   if (!user) return null;
+
+  React.useEffect(() => {
+    setFullName(user.name || '');
+    setPhone(user.phone || '');
+    setLocation(user.operatingLocation || user.location || '');
+    setAvatar(user.avatar || '');
+    setBaselinePrice(String((user as any).baselinePrice || ''));
+  }, [user]);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleSaveProfile = () => {
+    updateUser({
+      name: fullName,
+      phone,
+      operatingLocation: location,
+      location,
+      avatar,
+      ...(baselinePrice ? ({ baselinePrice: Number(baselinePrice) } as any) : {}),
+    });
+    setEditing(false);
   };
 
   // Helper function to get supplier type display name and badge
@@ -156,17 +182,63 @@ export default function Profile() {
         {/* Account Info */}
         <div className="bg-white rounded-2xl border border-gray-200">
           <div className="p-4 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900">Account Information</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Account Information</h3>
+              <button
+                onClick={() => (editing ? handleSaveProfile() : setEditing(true))}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              >
+                {editing ? 'Save' : 'Edit'}
+              </button>
+            </div>
           </div>
           <div className="p-4 space-y-3">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center gap-3">
+              <span className="text-gray-600">Full Name</span>
+              {editing ? (
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="px-2 py-1 border border-gray-300 rounded-lg" />
+              ) : (
+                <span className="font-medium text-gray-900">{user.name}</span>
+              )}
+            </div>
+            <div className="flex justify-between items-center gap-3">
               <span className="text-gray-600">Email</span>
               <span className="font-medium text-gray-900">{user.email}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center gap-3">
               <span className="text-gray-600">Phone</span>
-              <span className="font-medium text-gray-900">{user.phone}</span>
+              {editing ? (
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="px-2 py-1 border border-gray-300 rounded-lg" />
+              ) : (
+                <span className="font-medium text-gray-900">{user.phone}</span>
+              )}
             </div>
+            <div className="flex justify-between items-center gap-3">
+              <span className="text-gray-600">Profile Photo URL</span>
+              {editing ? (
+                <input value={avatar} onChange={(e) => setAvatar(e.target.value)} className="px-2 py-1 border border-gray-300 rounded-lg" />
+              ) : (
+                <span className="font-medium text-gray-900 truncate max-w-[180px]">{user.avatar || 'Not set'}</span>
+              )}
+            </div>
+            <div className="flex justify-between items-center gap-3">
+              <span className="text-gray-600">Operating Location</span>
+              {editing ? (
+                <input value={location} onChange={(e) => setLocation(e.target.value)} className="px-2 py-1 border border-gray-300 rounded-lg" />
+              ) : (
+                <span className="font-medium text-gray-900">{user.operatingLocation || user.location || 'Not set'}</span>
+              )}
+            </div>
+            {user.role !== 'traveler' && (
+              <div className="flex justify-between items-center gap-3">
+                <span className="text-gray-600">Pricing Baseline (RM)</span>
+                {editing ? (
+                  <input type="number" min={1} value={baselinePrice} onChange={(e) => setBaselinePrice(e.target.value)} className="px-2 py-1 border border-gray-300 rounded-lg" />
+                ) : (
+                  <span className="font-medium text-gray-900">{(user as any).baselinePrice || 'Not set'}</span>
+                )}
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-600">Member Since</span>
               <span className="font-medium text-gray-900">

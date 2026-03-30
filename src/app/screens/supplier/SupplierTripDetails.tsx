@@ -12,6 +12,7 @@ export default function SupplierTripDetails() {
   const [showOfferModal, setShowOfferModal] = useState(false);
 
   const trip = trips.find((t) => t.id === tripId);
+  const isVerifiedSupplier = user?.verificationStatus === 'verified';
   const serviceTags = trip?.requiredServices?.length
     ? trip.requiredServices.map((service) =>
         service.type === 'translator' &&
@@ -133,14 +134,21 @@ export default function SupplierTripDetails() {
 
         <Button
           variant="primary"
-          onClick={() => setShowOfferModal(true)}
+          onClick={() => {
+            if (!isVerifiedSupplier) {
+              alert('Only verified suppliers can submit offers.');
+              navigate('/supplier/verification');
+              return;
+            }
+            setShowOfferModal(true);
+          }}
           className="w-full"
         >
           Make an Offer
         </Button>
       </div>
 
-      {showOfferModal && user && (
+      {showOfferModal && user && isVerifiedSupplier && (
         <MakeOfferModal
           tripId={tripId!}
           onClose={() => setShowOfferModal(false)}
